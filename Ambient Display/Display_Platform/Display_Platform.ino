@@ -105,9 +105,6 @@ void loop() {
 
 /////CALLBACK/////
 //The callback is where we attach a listener to the incoming messages from the server.
-//By subscribing to a specific channel or topic, we can listen to those topics we wish to hear.
-//We place the callback in a separate tab so we can edit it easier . . . (will not appear in separate
-//tab on github!)
 /////
 const byte led = 2;
 char message_buff[100];

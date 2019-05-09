@@ -1,20 +1,4 @@
-//HEAVY commenting is on . . .
-//In this program we are publishing and subscribing to a MQTT server that requires a login/password
-//authentication scheme. We are connecting with a unique client ID, which is required by the server.
-//This unique client ID is derived from our device's MAC address, which is unique to the device, and
-//thus unique to the universe.
-//
-//We are publishing with a generic topic ("theTopic") which you should change to ensure you are publishing
-//to a known topic (eg, if everyone uses "theTopic" then everyone would be publishing over everyone else, which
-//would be a mess). So, create your own topic channel.
-//
-//We have hardcoded the topic and the subtopics in the mqtt.publish() function, because those topics and sub
-//topics are never going to change. We have subscribed to the super topic using the directory-like addressing
-//system MQTT provides. We subscribe to 'theTopic/+' which means we are subscribing to 'theTopic' and every
-//sub-topic that might come after the main topic. We denote this with a '+' symbol.
-//
-//Please change your super topic and don't use 'theTopic'.
-/////
+
 
 #include <ESP8266WiFi.h> //Requisite Libraries . . .
 #include "Wire.h"           //
@@ -31,12 +15,6 @@ DHT_Unified dht(DATA_PIN, DHT22);
 
 #define wifi_ssid "Krusty Krab"   //You have seen this before
 #define wifi_password "Ziggystardust" //
-
-//////////
-//So to clarify, we are connecting to and MQTT server
-//that has a login and password authentication
-//I hope you remember the user and password
-//////////
 
 #define mqtt_server "mediatedspaces.net"  //this is its address, unique to the server
 #define mqtt_user "hcdeiot"               //this is its server login, unique to the server
@@ -74,7 +52,6 @@ void setup() {
   setup_wifi();
   dht.begin();  // initialize dht22
   mqtt.setServer(mqtt_server, 1883);
-  mqtt.setCallback(callback); //register the callback function
   timerOne = timerTwo = timerThree = millis();
 }
 
@@ -102,8 +79,8 @@ void reconnect() {
     Serial.print("Attempting MQTT connection...");
     if (mqtt.connect(mac, mqtt_user, mqtt_password)) { //<<---using MAC as client ID, always unique!!!
       Serial.println("connected");
-      mqtt.subscribe("jay"); //we are subscribing to 'theTopic' and all subtopics below that topic
-    } else {                        //please change 'theTopic' to reflect your topic you are subscribing to
+      mqtt.subscribe("jay"); //we are subscribing to 'jay' and all subtopics below that topic
+    } else {                        
       Serial.print("failed, rc=");
       Serial.print(mqtt.state());
       Serial.println(" try again in 5 seconds");
@@ -132,24 +109,12 @@ void loop() {
   float temp = event.temperature;
     dht.humidity().getEvent(&event);
       float humidity = event.relative_humidity;
-
-    /////
-    //Unfortunately, as of this writing, sprintf (under Arduino) does not like floats  (bug!), so we can not
-    //use floats in the sprintf function. Further, we need to send the temp and humidity as
-    //a c-string (char array) because we want to format this message as JSON.
-    //
-    //We need to make these floats into c-strings via the function dtostrf(FLOAT,WIDTH,PRECISION,BUFFER).
-    //To go from the float 3.14159 to a c-string "3.14" you would put in the FLOAT, the WIDTH or size of the
-    //c-string (how many chars will it take up), the decimal PRECISION you want (how many decimal places, and
-    //the name of a little BUFFER we can stick the new c-string into for a brief time. . .
-    /////
-
+      
     char str_temp[6]; //a temp array of size 6 to hold "XX.XX" + the terminating character
     char str_humd[6]; //a temp array of size 6 to hold "XX.XX" + the terminating character
 
     //take temp, format it into 5 char array with a decimal precision of 2, and store it in str_temp
     dtostrf(temp, 5, 2, str_temp);
-    //ditto
     dtostrf(humidity, 5, 2, str_humd);
 
     /////
@@ -163,47 +128,3 @@ void loop() {
   }
 
 }//end Loop
-
-
-/////CALLBACK/////
-//The callback is where we attach a listener to the incoming messages from the server.
-//By subscribing to a specific channel or topic, we can listen to those topics we wish to hear.
-//We place the callback in a separate tab so we can edit it easier . . . (will not appear in separate
-//tab on github!)
-/////
-
-void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.println();
-  Serial.print("Message arrived [");
-  Serial.print(topic); //'topic' refers to the incoming topic name, the 1st argument of the callback function
-  Serial.println("] ");
-
-  DynamicJsonBuffer  jsonBuffer; //blah blah blah a DJB
-  JsonObject& root = jsonBuffer.parseObject(payload); //parse it!
-
-  if (!root.success()) { //well?
-    Serial.println("parseObject() failed, are you sure this message is JSON formatted.");
-    return;
-  }
-
-  /////
-  //We can use strcmp() -- string compare -- to check the incoming topic in case we need to do something
-  //special based upon the incoming topic, like move a servo or turn on a light . . .
-  //strcmp(firstString, secondString) == 0 <-- '0' means NO differences, they are ==
-  /////
-
-  if (strcmp(topic, "theTopic/LBIL") == 0) {
-    Serial.println("A message from Batman . . .");
-  }
-
-  else if (strcmp(topic, "theTopic/tempHum") == 0) {
-    Serial.println("Some weather info has arrived . . .");
-  }
-
-  else if (strcmp(topic, "theTopic/switch") == 0) {
-    Serial.println("The switch state is being reported . . .");
-  }
-
-  root.printTo(Serial); //print out the parsed message
-  Serial.println(); //give us some space on the serial monitor read out
-}
